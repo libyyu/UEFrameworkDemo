@@ -1,0 +1,25 @@
+{
+    "FileVersion": 3,
+    "Version": 2,
+    "VersionName": "2.3.5",
+    "FriendlyName": "CoreFramework",
+    "Description": "CoreFramework plugin",
+    "Category": "Scripting",
+    "CreatedBy": "Tencent",
+    "CreatedByURL": "https://www.tencent.com/",
+    "DocsURL": "",
+    "MarketplaceURL": "",
+    "SupportURL": "",
+    "CanContainContent": true,
+    "IsBetaVersion": false,
+    "Installed": false,
+    "CanBeUsedWithUnrealHeaderTool": true,
+    "Modules": [
+        {
+            "Name": "CoreFramework",
+            "Type": "Runtime",
+            "LoadingPhase": "Default",
+            "WhitelistPlatforms": [ "Win64", "Mac", "IOS", "Android", "Linux" ]
+        }
+    ]
+}
