@@ -26,15 +26,21 @@ public:
 	/*
 	 *资源是否已加载好
 	 */
-	bool IsGameResLoaded(const FString& InName);
+	UFUNCTION(BlueprintCallable)
+	bool IsGameResLoaded(const FString& InName) const;
 
 	/*
 	 *异步加载指定资源
 	 */
 	void AsyncLoadResource(const FString& InName, const TFunction<void(UObject*)>& InCallback, const FString& InObjType = TEXT(""), bool IsBaseObjType = false);
+	DECLARE_DYNAMIC_DELEGATE_OneParam(FAsyncLoadResourceDelegate, UObject*, Obj);
+	UFUNCTION(BlueprintCallable)
+	void AsyncLoadResource(const FString& Name, FAsyncLoadResourceDelegate Event, const FString& ObjType = TEXT(""), bool IsBaseObjType = false);
+	
 	/*
 	 *同步加载指定资源
 	 */
+	UFUNCTION(BlueprintCallable)
 	UObject* SyncLoadResource(const FString& InName, const FString& InObjType = TEXT(""), bool IsBaseObjType = false);
 
 };

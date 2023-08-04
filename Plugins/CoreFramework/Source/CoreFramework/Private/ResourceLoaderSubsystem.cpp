@@ -16,7 +16,7 @@ void UResourceLoaderSubsystem::Deinitialize()
 	ResourceLoader::Get().Shutdown();
 }
 
-bool UResourceLoaderSubsystem::IsGameResLoaded(const FString& InName)
+bool UResourceLoaderSubsystem::IsGameResLoaded(const FString& InName) const 
 {
 	return ResourceLoader::Get().IsGameResLoaded(InName);
 }
@@ -25,6 +25,15 @@ void UResourceLoaderSubsystem::AsyncLoadResource(const FString& InName, const TF
 {
 	ResourceLoader::Get().AsyncLoadResource(InName, InCallback, InObjType, IsBaseObjType);
 }
+
+void UResourceLoaderSubsystem::AsyncLoadResource(const FString& Name, FAsyncLoadResourceDelegate Event, const FString& ObjType, bool IsBaseObjType)
+{
+	AsyncLoadResource(Name, [Event](UObject* Obj)
+	{
+		Event.ExecuteIfBound(Obj);
+	}, ObjType, IsBaseObjType);
+}
+	
 
 UObject* UResourceLoaderSubsystem::SyncLoadResource(const FString& InName, const FString& InObjType, bool IsBaseObjType)
 {
