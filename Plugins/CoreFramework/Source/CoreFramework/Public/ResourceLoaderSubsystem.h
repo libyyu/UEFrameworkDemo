@@ -33,6 +33,7 @@ public:
 	 *异步加载指定资源
 	 */
 	void AsyncLoadResource(const FString& InName, const TFunction<void(UObject*)>& InCallback, const FString& InObjType = TEXT(""), bool IsBaseObjType = false);
+	
 	DECLARE_DYNAMIC_DELEGATE_OneParam(FAsyncLoadResourceDelegate, UObject*, Obj);
 	UFUNCTION(BlueprintCallable)
 	void AsyncLoadResource(const FString& Name, FAsyncLoadResourceDelegate Event, const FString& ObjType = TEXT(""), bool IsBaseObjType = false);
