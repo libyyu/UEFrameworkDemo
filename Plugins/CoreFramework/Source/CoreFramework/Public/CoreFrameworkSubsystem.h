@@ -5,13 +5,13 @@
 #include "CoreMinimal.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "Tickable.h"
-#include "ResourceLoaderSubsystem.generated.h"
+#include "CoreFrameworkSubsystem.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class COREFRAMEWORK_API UResourceLoaderSubsystem : public UGameInstanceSubsystem, public FTickableGameObject
+class COREFRAMEWORK_API UCoreFrameworkSubsystem : public UGameInstanceSubsystem, public FTickableGameObject
 {
 	GENERATED_BODY()
 public:

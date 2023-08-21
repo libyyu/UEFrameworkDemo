@@ -2,7 +2,7 @@
 
 
 #include "ResourceLoaderAsyncAction.h"
-#include "ResourceLoaderSubsystem.h"
+#include "CoreFrameworkSubsystem.h"
 #include "Kismet/GameplayStatics.h"
 
 UResourceLoaderAsyncAction* UResourceLoaderAsyncAction::NewResourceLoader(const FString& InName, const FString& InObjType, bool IsBaseObjType)
@@ -21,7 +21,7 @@ void UResourceLoaderAsyncAction::Activate()
 	Super::Activate();
 	
 	UGameInstance* GameInstance = UGameplayStatics::GetGameInstance(GetWorld());
-	UResourceLoaderSubsystem* inst = GameInstance->GetSubsystem<UResourceLoaderSubsystem>();
+	UCoreFrameworkSubsystem* inst = GameInstance->GetSubsystem<UCoreFrameworkSubsystem>();
 	inst->AsyncLoadResource(ResName, [this](UObject* Obj)
 	{
 		if(OnComplete.IsBound())
