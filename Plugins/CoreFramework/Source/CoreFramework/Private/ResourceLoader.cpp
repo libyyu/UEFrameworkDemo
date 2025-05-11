@@ -165,7 +165,11 @@ void ResourceLoader::LoadGameResAsync(const FString& InName, ResourceCallbackFun
 			}
 #endif
 
+#if UE_VERSION_OLDER_THAN(5, 0, 0)
 			LoadPackageAsync(PckPath, nullptr, nullptr, FLoadPackageAsyncDelegate::CreateStatic(&_AsyncLoadCallbackWrapper, pckName), PackageFlags, PIEInstanceID, 0);
+#else
+			LoadPackageAsync(PckPath, FLoadPackageAsyncDelegate::CreateStatic(&_AsyncLoadCallbackWrapper, pckName), 0, PackageFlags, PIEInstanceID);
+#endif
 		}
 		else
 		{
