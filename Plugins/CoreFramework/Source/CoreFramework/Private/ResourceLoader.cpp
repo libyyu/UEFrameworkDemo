@@ -3,6 +3,7 @@
 
 #include "ResourceLoader.h"
 #include "CoreFramework.h"
+#include "Misc/EngineVersionComparison.h"
 
 static bool ConvertResNameToPackagePath(const FString& InName, FString& OutPackagePath, FString& OutErrorInfo)
 {
@@ -79,15 +80,15 @@ ResourceLoader& ResourceLoader::Get()
 	return inst;
 }
 
-void ResourceLoader::InnerLoadCallback(const FName& PackageName, UPackage* ResPackage, EAsyncLoadingResult::Type Result, FName realPckName)
+void ResourceLoader::InnerLoadCallback(const FName& PackageName, const UPackage* ResPackage, EAsyncLoadingResult::Type Result, FName RealPckName)
 {
 	TArray<UObject*> PotentialRes;
 	if (Result == EAsyncLoadingResult::Succeeded && ResPackage && ResPackage->IsValidLowLevel())
 		_LoadGameResFromPck(ResPackage, PotentialRes);
 
 	auto& callbacksMap2 = callbacksMap;
-	CallbacksArray* callbacksPtr = *(callbacksMap2.Find(realPckName));
-	callbacksMap2.Remove(realPckName);
+	CallbacksArray* callbacksPtr = *(callbacksMap2.Find(RealPckName));
+	callbacksMap2.Remove(RealPckName);
 
 	for (auto& oneFunc : *callbacksPtr)
 	{
@@ -97,7 +98,7 @@ void ResourceLoader::InnerLoadCallback(const FName& PackageName, UPackage* ResPa
 	AddCallbacksArrayToCache(callbacksPtr);
 }
 	
-void ResourceLoader::_AsyncLoadCallbackWrapper(const FName& PackageName, UPackage* ResPackage, EAsyncLoadingResult::Type Result, FName realPckName)
+void ResourceLoader::_AsyncLoadCallbackWrapper(const FName& PackageName, UPackage* ResPackage, EAsyncLoadingResult::Type Result, FName RealPckName)
 {
 	//if (GAzureFlushAsyncLoadingFlag == 0)
 	//{
@@ -106,7 +107,7 @@ void ResourceLoader::_AsyncLoadCallbackWrapper(const FName& PackageName, UPackag
 	//}
 	
 	auto& inst = Get();
-	inst.delayedCallbackInfos.Add({ PackageName, ResPackage, Result, realPckName });
+	inst.delayedCallbackInfos.Add({ PackageName, ResPackage, Result, RealPckName });
 	if (ResPackage)
 	{
 		//GetObjectsWithPackage(ResPackage, inst.delayedCallbackRes, false);
@@ -114,35 +115,35 @@ void ResourceLoader::_AsyncLoadCallbackWrapper(const FName& PackageName, UPackag
 	}
 }
 
-void ResourceLoader::LoadGameResAsync(const FString& InName, ResourceCallbackFuncType&& func, bool IsWorld)
+void ResourceLoader::LoadGameResAsync(const FString& InName, ResourceCallbackFuncType&& Func, bool IsWorld)
 {
 	static FString PckPath;
-	FString errorInfo;
-	if (!ConvertResNameToPackagePath(InName, PckPath, errorInfo))
+	FString ErrorInfo;
+	if (!ConvertResNameToPackagePath(InName, PckPath, ErrorInfo))
 	{
-		UE_LOG(LogCoreFramework, Warning, TEXT("LoadGameResAsync, %s"), *PckPath);
-		func(TArray<UObject*>());
+		UE_LOG(LogCoreFramework, Warning, TEXT("LoadGameResAsync failed %s, %s"), *PckPath, *ErrorInfo);
+		Func(TArray<UObject*>());
 		return;
 	}
 	
-	UPackage* PackagePtr = FindPackage(nullptr, *PckPath);
+	const UPackage* PackagePtr = FindPackage(nullptr, *PckPath);
 
 	if (PackagePtr && PackagePtr->IsFullyLoaded())
 	{
 		TArray<UObject*> PotentialRes;
 		 _LoadGameResFromPck(PackagePtr, PotentialRes);
-		func(PotentialRes);
+		Func(PotentialRes);
 	}
 	else
 	{
-		FName pckName(*PckPath);
-		CallbacksArray** callbacksPtr = callbacksMap.Find(pckName);
+		FName PckName(*PckPath);
+		CallbacksArray** callbacksPtr = callbacksMap.Find(PckName);
 
 		if (callbacksPtr == nullptr)
 		{
 			CallbacksArray* callbacks = GetOrCreateCallbacksArray();
-			callbacks->Add(MoveTemp(func));
-			callbacksMap.Add(pckName, callbacks);
+			callbacks->Add(MoveTemp(Func));
+			callbacksMap.Add(PckName, callbacks);
 
 			EPackageFlags PackageFlags = IsWorld ? PKG_ContainsMap : PKG_None;
 			int32 PIEInstanceID = INDEX_NONE;
@@ -150,50 +151,51 @@ void ResourceLoader::LoadGameResAsync(const FString& InName, ResourceCallbackFun
 #if WITH_EDITOR
 			if (IsWorld)
 			{
-				if (!GWorld)
-					return;
-
 				UWorld* PersistentWorld = GWorld;
-				if (PersistentWorld->IsPlayInEditor())
+				if (PersistentWorld && PersistentWorld->IsPlayInEditor())
 				{
 					if (PersistentWorld->GetOutermost()->HasAnyPackageFlags(PKG_PlayInEditor))
 					{
 						PackageFlags |= PKG_PlayInEditor;
 					}
+#if UE_VERSION_OLDER_THAN(5, 0, 0)
 					PIEInstanceID = PersistentWorld->GetOutermost()->PIEInstanceID;
+#else
+					PIEInstanceID = PersistentWorld->GetOutermost()->GetPIEInstanceID();
+#endif
 				}
 			}
 #endif
 
 #if UE_VERSION_OLDER_THAN(5, 0, 0)
-			LoadPackageAsync(PckPath, nullptr, nullptr, FLoadPackageAsyncDelegate::CreateStatic(&_AsyncLoadCallbackWrapper, pckName), PackageFlags, PIEInstanceID, 0);
+			LoadPackageAsync(PckPath, nullptr, nullptr, FLoadPackageAsyncDelegate::CreateStatic(&_AsyncLoadCallbackWrapper, PckName), PackageFlags, PIEInstanceID, 0);
 #else
-			LoadPackageAsync(PckPath, FLoadPackageAsyncDelegate::CreateStatic(&_AsyncLoadCallbackWrapper, pckName), 0, PackageFlags, PIEInstanceID);
+			LoadPackageAsync(PckPath, FLoadPackageAsyncDelegate::CreateStatic(&_AsyncLoadCallbackWrapper, PckName), 0, PackageFlags, PIEInstanceID);
 #endif
 		}
 		else
 		{
 			CallbacksArray* callbacks = *callbacksPtr;
-			callbacks->Add(MoveTemp(func));
+			callbacks->Add(MoveTemp(Func));
 		}
 	}
 }
 
-void ResourceLoader::LoadGameRes(const FString& InName, TArray<UObject*>& res, bool IsWorld)
+void ResourceLoader::LoadGameRes(const FString& InName, TArray<UObject*>& Res, bool IsWorld)
 {
 	static FString PckPath;
-	FString errorInfo;
-	if (!ConvertResNameToPackagePath(InName, PckPath, errorInfo))
+	FString ErrorInfo;
+	if (!ConvertResNameToPackagePath(InName, PckPath, ErrorInfo))
 	{
-		UE_LOG(LogCoreFramework, Warning, TEXT("LoadGameRes, %s"), *PckPath);
+		UE_LOG(LogCoreFramework, Warning, TEXT("LoadGameRes %s, %s"), *PckPath, *ErrorInfo);
 		return;
 	}
 	
-	UPackage* ResPackage = FindPackage(nullptr, *PckPath);
+	const UPackage* ResPackage = FindPackage(nullptr, *PckPath);
 
 	if (ResPackage && ResPackage->IsFullyLoaded())
 	{
-		_LoadGameResFromPck(ResPackage, res);
+		_LoadGameResFromPck(ResPackage, Res);
 		return;
 	}
 
@@ -202,37 +204,31 @@ void ResourceLoader::LoadGameRes(const FString& InName, TArray<UObject*>& res, b
 		UE_LOG(LogCoreFramework, Error, TEXT("LoadGameRes, resName[%s] IsAsyncLoadingSuspended!"), *InName);
 		return;
 	}
-
-//#if !UE_BUILD_SHIPPING
-//	UE_LOG(LogAzure, Log, TEXT("LuaSyncLoadResource to load : %s"), *InName);
-//#endif
-
+	
 	ResPackage = LoadPackage(nullptr, *PckPath, IsWorld ? LOAD_PackageForPIE : LOAD_None, nullptr);
 
 	if (ResPackage == nullptr)
 		return;
 
-	_LoadGameResFromPck(ResPackage, res);
+	_LoadGameResFromPck(ResPackage, Res);
 }
 
-bool ResourceLoader::IsGameResLoaded(const FString& InName)
+bool ResourceLoader::IsGameResLoaded(const FString& InName) const
 {
 	static FString PckPath;
-	FString errorInfo;
-	if (!ConvertResNameToPackagePath(InName, PckPath, errorInfo))
+	FString ErrorInfo;
+	if (!ConvertResNameToPackagePath(InName, PckPath, ErrorInfo))
 	{
 		return false;
 	}
 
-	UPackage* ResPackage = FindPackage(nullptr, *PckPath);
+	const UPackage* ResPackage = FindPackage(nullptr, *PckPath);
 	if (ResPackage && ResPackage->IsFullyLoaded())
 	{
 		return true;
 	}
-	else
-	{
-		return false;
-	}
+
+	return false;
 }
 
 void ResourceLoader::AddReferencedObjects(FReferenceCollector& Collector)
@@ -264,7 +260,7 @@ void ResourceLoader::Tick()
 	delayedCallbackRes.Empty();
 	for (auto& info : tempCallbackInfos)
 	{
-		InnerLoadCallback(info.PackageName, info.ResPackage, info.Result, info.realPckName);
+		InnerLoadCallback(info.PackageName, info.ResPackage, info.Result, info.RealPckName);
 	}
 
 	tempCallbackInfos.Empty();

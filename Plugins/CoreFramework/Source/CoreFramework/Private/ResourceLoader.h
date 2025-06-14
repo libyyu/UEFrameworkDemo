@@ -15,9 +15,9 @@ class ResourceLoader : public FGCObject
 	ResourceLoader();
 	~ResourceLoader();
 
-	void InnerLoadCallback(const FName& PackageName, UPackage* ResPackage, EAsyncLoadingResult::Type Result, FName realPckName);
+	void InnerLoadCallback(const FName& PackageName, const UPackage* ResPackage, EAsyncLoadingResult::Type Result, FName RealPckName);
 
-	static void _AsyncLoadCallbackWrapper(const FName& PackageName, UPackage* ResPackage, EAsyncLoadingResult::Type Result, FName realPckName);
+	static void _AsyncLoadCallbackWrapper(const FName& PackageName, UPackage* ResPackage, EAsyncLoadingResult::Type Result, FName RealPckName);
 
 	typedef TFunction<void(TArray<UObject*>)> ResourceCallbackFuncType;
 	typedef TArray<ResourceCallbackFuncType> CallbacksArray;
@@ -54,7 +54,7 @@ class ResourceLoader : public FGCObject
 		FName PackageName;
 		UPackage* ResPackage;
 		EAsyncLoadingResult::Type Result;
-		FName realPckName;
+		FName RealPckName;
 	};
 
 	TArray<DelayedCallbackInfo> delayedCallbackInfos;
@@ -69,11 +69,11 @@ public:
 	/*
 	 *异步加载资源包
 	 */
-	void LoadGameResAsync(const FString& InName, ResourceCallbackFuncType&& func, bool IsWorld = false);
-	void LoadGameResAsync(const FString& InName, const ResourceCallbackFuncType& func, bool IsWorld = false)
+	void LoadGameResAsync(const FString& InName, ResourceCallbackFuncType&& Func, bool IsWorld = false);
+	void LoadGameResAsync(const FString& InName, const ResourceCallbackFuncType& Func, bool IsWorld = false)
 	{
-		ResourceCallbackFuncType tempFunc(func);
-		LoadGameResAsync(InName, MoveTemp(tempFunc), IsWorld);
+		ResourceCallbackFuncType TempFunc(Func);
+		LoadGameResAsync(InName, MoveTemp(TempFunc), IsWorld);
 	}
 	
 	/*
@@ -84,7 +84,7 @@ public:
 	/*
 	 *资源是否已加载好
 	 */
-	bool IsGameResLoaded(const FString& InName);
+	bool IsGameResLoaded(const FString& InName) const;
 
 	/*
 	 *异步加载指定资源
